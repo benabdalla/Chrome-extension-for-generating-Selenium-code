@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Selenium Java Recorder</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 12px;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    h2 {
+      margin-top: 0;
+      color: #1a73e8;
+      font-size: 18px;
+      text-align: center;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      width: calc(50% - 10px);
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #185abc;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .button-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #status {
+      margin-top: 10px;
+      padding: 8px;
+      text-align: center;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .recording {
+      color: #ffffff;
+      background-color: #d32f2f;
+      font-weight: bold;
+    }
+    .stopped {
+      color: #ffffff;
+      background-color: #388e3c;
+    }
+    .error {
+      color: #ffffff;
+      background-color: #d32f2f;
+    }
+    .warning {
+      color: #333;
+      background-color: #ffeb3b;
+    }
+    .success {
+      color: #ffffff;
+      background-color: #388e3c;
+    }
+    .ready {
+      color: #333;
+      background-color: #e0e0e0;
+    }
+    .processing {
+      color: #333;
+      background-color: #90caf9;
+    }
+    .footer {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Selenium Java Recorder</h2>
+  <div class="button-container">
+    <button id="startRecording">Start Recording</button>
+    <button id="stopRecording" disabled>Stop Recording</button>
+    <button id="downloadCode" disabled>Download Java Code</button>
+    <button id="clearRecording" disabled>Clear Recording</button>
+  </div>
+  <div id="status" class="ready">Ready to record</div>
+  <div class="footer">
+    Record your interactions and generate Selenium Java code
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

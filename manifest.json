@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Selenium Java Recorder",
+  "version": "1.0",
+  "description": "Records user interactions with web UI and converts them to Selenium Java methods",
+  "permissions": [
+    "activeTab", 
+    "scripting", 
+    "storage", 
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
