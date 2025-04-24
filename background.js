@@ -3,7 +3,25 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
   if (request.action === 'generateJavaCode') {
     try {
-      generateJavaCode(request.actions);
+      const javaCode= generateJavaCode(request.actions);
+      const javaString = extractAttributesThenMethods(javaCode);
+
+       // 🧠 Créer un Data URL à la place de createObjectURL
+    const base64Code = btoa(unescape(encodeURIComponent(javaString)));
+    const dataUrl = 'data:text/plain;charset=utf-8;base64,' + base64Code;
+
+    chrome.downloads.download({
+      url: dataUrl,
+      filename: 'SeleniumTest.java',
+      saveAs: true
+    }, function(downloadId) {
+      if (chrome.runtime.lastError) {
+        console.error('[Background] Download failed:', chrome.runtime.lastError.message);
+      } else {
+        console.log('[Background] Download started with ID:', downloadId);
+      }
+    });
+
       sendResponse({ success: true });
     } catch (e) {
       console.error("[Selenium Recorder] Error generating Java code:", e);
@@ -16,230 +34,101 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return true;
   }
 });
-
-function escapeString(str) {
-  return str
-    .replace(/\\/g, '\\\\')   // échappe les backslashes
-    .replace(/"/g, '\\"')     // échappe les guillemets doubles
-    .replace(/\n/g, '\\n')    // échappe les sauts de ligne
-    .replace(/\r/g, '\\r');   // échappe les retours chariot
-}
-
-function getLocatorCode(selector) {
-  switch (selector.type) {
-    case 'css':
-      return `By.cssSelector("${escapeString(selector.value)}")`;
-    case 'xpath':
-      return `By.xpath("${escapeString(selector.value)}")`;
-    case 'id':
-      return `By.id("${escapeString(selector.value)}")`;
-    case 'name':
-      return `By.name("${escapeString(selector.value)}")`;
-    case 'class':
-      return `By.className("${escapeString(selector.value)}")`;
-    default:
-      return `By.cssSelector("${escapeString(selector.value)}")`; // fallback
-  }
-}
-
-
-
 function generateJavaCode(actions) {
 
-  let code = `public void runTest() {\n`;
+  let classCode = `
+package com.xray.projects.qualipro.*.page;
 
-  actions.forEach(action => {
-    let selector = action.selector?.value || '';
-    let type = action.selector?.type || 'id'; // fallback to id
-    let by = '';
-
-    switch (type) {
-      case 'id':
-        by = `By.id("${selector}")`;
-        break;
-      case 'name':
-        by = `By.name("${selector}")`;
-        break;
-      case 'xpath':
-        by = `By.xpath("${selector}")`;
-        break;
-      case 'css':
-        by = `By.cssSelector("${selector}")`;
-        break;
-      default:
-        by = `By.id("${selector}")`;
-    }
-
-    switch (action.type) {
-      case 'navigation':
-        code += `    driver.get("${action.url}");\n`;
-        break;
-
-      case 'click':
-        code += `    driver.findElement(${by}).click();\n`;
-        break;
-
-      case 'input':
-        code += `    driver.findElement(${by}).sendKeys("${action.value || ''}");\n`;
-        break;
-
-      case 'submit':
-        code += `    driver.findElement(${by}).submit();\n`;
-        break;
-
-      case 'select':
-        code += `    new Select(driver.findElement(${by})).selectByValue("${action.value}");\n`;
-        break;
-
-      default:
-        code += `    // Unsupported action: ${action.type}\n`;
-    }
-  });
-
-  code += `}`;
-  return code;
-}
-
-
-/*
-
-  if (!actions || actions.length === 0) {
-    throw new Error("No actions to generate code from");
-  }
-
-  console.log("[Selenium Recorder] Generating Java code from", actions.length, "actions");
-
-  let javaCode = `import org.openqa.selenium.By;
+import com.xray.constants.FrameworkConstants;
+import com.xray.helpers.ExcelHelpers;
+import com.xray.keywords.WebUI;
+import com.xray.projects.qualipro.GRH.page.EmployerPage;
+import com.xray.projects.qualipro.authentification.pages.LoginPage;
+import com.xray.projects.qualipro.home.pages.HomePage;
+import com.xray.utils.LogUtils;
+import net.datafaker.Faker;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+
 import java.time.Duration;
+import java.util.*;
 
+  public class CodeTransformer{ 
+  
+  \n`;
+  let javaCode = '';
+  actions.forEach(action => {
+    const type = action.elementType || action.inputType || action.checked;
+    if(type!=undefined){
+    const selector = action.selector?.type ;
+    const elementId = action.selector?.value || '';
+    const fieldName = elementId+type+selector;
 
-public class RecordedTest {
-    private WebDriver driver;
-    private WebDriverWait wait;
-    
-    public void setUp() {
-        // Set the path to your ChromeDriver if needed
-        // System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
-        
-        ChromeOptions options = new ChromeOptions();
-        // Add any desired options here
-        // options.addArguments("--headless");
-        
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        
-        // Set window size and position
-        driver.manage().window().maximize();
+    let actionLine = '';
+
+    if (type === 'select') {
+      actionLine = `WebUI.selectOptionByText(${fieldName}, "Your Data");`;
+    } else if (type === 'input' || type === 'textarea') {
+      actionLine = `WebUI.setText(${fieldName}, "Your Data");`;
+    } else if (type === 'click' || type === 'a' || type === 'span' || type === 'h4') {
+      actionLine = `WebUI.clickElement(${fieldName});`;
+    } else {
+      actionLine = `WebUI.clickElement(${fieldName}); // Default`;
     }
-    
-    public void runTest() {
-`;
 
-  // Process each action
-  actions.forEach((action, index) => {
-    javaCode += `        // Action ${index + 1}: ${action.type}\n`;
-    javaCode += generateActionCode(action);
-    javaCode += '\n';
+    javaCode += `private final By ${fieldName} = By.${selector}("${elementId}");\n`;
+    javaCode += `public void ${fieldName}() {\n`;
+    javaCode += `    ${actionLine}\n`;
+    javaCode += `}\n\n`;
+  }
   });
 
-  javaCode += `    }
-    
-    
+  letcode=extractAttributesThenMethods (javaCode)
+  letcode=classCode+letcode+`\n\n}\n\n`;
+return letcode;
 
 }
-`;
 
-  console.log("[Selenium Recorder] Java code generated successfully");
+function extractAttributesThenMethods(code) {
+  const lines = code.split('\n');
+  const attributes = [];
+  const methods = [];
 
-  try {
-    // Use chrome.downloads API directly with data URL
-    const encodedCode = encodeURIComponent(javaCode);
-    chrome.downloads.download({
-      url: 'data:text/java;charset=utf-8,' + encodedCode,
-      filename: 'RecordedTest.java',
-      saveAs: true
-    }, function (downloadId) {
-      if (chrome.runtime.lastError) {
-        console.error("[Selenium Recorder] Download error:", chrome.runtime.lastError);
-        throw new Error(chrome.runtime.lastError.message);
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    // Step 1: Collect all attribute lines
+    if (line.startsWith('private final By')) {
+      attributes.push(lines[i]);
+    }
+
+    // Step 2: Collect methods
+    if (line.startsWith('public void')) {
+      const methodBlock = [lines[i]];
+      i++;
+
+      // Add lines until we reach the closing bracket of the method
+      while (i < lines.length) {
+        methodBlock.push(lines[i]);
+        if (lines[i].includes('}')) break;
+        i++;
       }
-      console.log("[Selenium Recorder] Download started with ID:", downloadId);
-    });
-  } catch (e) {
-    console.error("[Selenium Recorder] Error initiating download:", e);
-    throw e;
+      methods.push(methodBlock.join('\n'));
+    }
+
+    i++;
   }
+
+  // Combine attributes first, then methods
+  return [...attributes, '', ...methods].join('\n');
 }
-*/
-function generateActionCode(action) {
-  let code = '';
-  switch (action.type) {
-    case 'navigation':
-      code = `        // Navigate to URL\n`;
-      code += `        driver.get("${escapeString(action.url)}");\n`;
-      code += `        waitForPageLoad();\n`;
-      break;
 
-    case 'click':
-      code = `        // Click on ${action.elementType || 'element'}\n`;
-      code += `        waitForElement(${getLocatorCode(action.selector)}).click();\n`;
-      break;
 
-    case 'input':
-      code = `        // Enter text in input field\n`;
-      code += `        WebElement inputElement = waitForElement(${getLocatorCode(action.selector)});\n`;
-      code += `        inputElement.clear();\n`;
-      code += `        inputElement.sendKeys("${escapeString(action.value || '')}");\n`;
-      break;
 
-    case 'select':
-      code = `        // Select option from dropdown\n`;
-      code += `        WebElement selectElement = waitForElement(${getLocatorCode(action.selector)});\n`;
-      code += `        new Select(selectElement).selectByValue("${escapeString(action.value || '')}");\n`;
-      break;
 
-    case 'textarea':
-      code = `        // Enter text in textarea\n`;
-      code += `        WebElement textareaElement = waitForElement(${getLocatorCode(action.selector)});\n`;
-      code += `        textareaElement.clear();\n`;
-      code += `        textareaElement.sendKeys("${escapeString(action.value || '')}");\n`;
-      break;
 
-    case 'checkbox':
-    case 'radio':
-      const actionVerb = action.checked ? 'Select' : 'Deselect';
-      code = `        // ${actionVerb} ${action.type} button\n`;
-      code += `        WebElement element = waitForElement(${getLocatorCode(action.selector)});\n`;
-      code += `        if (element.isSelected() != ${action.checked}) {\n`;
-      code += `            element.click();\n`;
-      code += `        }\n`;
-      break;
-
-    case 'submit':
-      code = `        // Submit form\n`;
-      code += `        waitForElement(${getLocatorCode(action.selector)}).submit();\n`;
-      code += `        waitForPageLoad();\n`;
-      break;
-
-    case 'keypress':
-      if (action.key === 'Enter') {
-        code = `        // Press Enter key\n`;
-        code += `        waitForElement(${getLocatorCode(action.selector)}).sendKeys(org.openqa.selenium.Keys.ENTER);\n`;
-        code += `        waitForPageLoad();\n`;
-      }
-      break;
-
-    default:
-      code = `        // Unsupported action type: ${action.type}\n`;
-      break;
-  }
-}
 
 
